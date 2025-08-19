@@ -1,0 +1,8 @@
+
+.wrap.gffm-admin .gffm-admin-h{display:flex;gap:12px;align-items:center;margin-bottom:10px}
+.wrap.gffm-admin .gffm-admin-h .gffm-logo{height:40px;border-radius:8px;background:#fff;padding:4px;border:1px solid #e5e7eb}
+.gffm-cards{display:grid;grid-template-columns:repeat(1,minmax(0,1fr));gap:12px;margin-top:10px}
+@media(min-width:840px){.gffm-cards{grid-template-columns:repeat(3,minmax(0,1fr));}}
+.gffm-card{display:block;border:1px solid #e5e7eb;border-radius:12px;padding:14px;background:#fff;text-decoration:none;color:#111;box-shadow:0 1px 6px rgba(0,0,0,.05)}
+.gffm-card h3{margin:.1rem 0 .35rem}
+.gffm-card p{margin:0;color:#374151}
