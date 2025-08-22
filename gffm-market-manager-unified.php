@@ -15,26 +15,34 @@ define('GFFM_VERSION','4.1.1');
 define('GFFM_DIR', plugin_dir_path(__FILE__));
 define('GFFM_URL', plugin_dir_url(__FILE__));
 
-$gffm_includes = array(
-  'class-gffm-roles.php',
-  'class-gffm-post-types.php',
-  'class-gffm-settings.php',
-  'class-gffm-admin.php',
-  'class-gffm-enrollment.php',
-  'class-gffm-waitlist.php',
-  'class-gffm-export.php',
-  'class-gffm-invoices.php',
-  'class-gffm-cron.php',
-  'class-gffm-rest.php',
-  'class-gffm-vendor-users.php',
-  'class-gffm-highlights.php',
-  'class-gffm-portal.php',
-);
+require_once GFFM_DIR . 'includes/class-gffm-roles.php';
+require_once GFFM_DIR . 'includes/class-gffm-post-types.php';
+require_once GFFM_DIR . 'includes/class-gffm-settings.php';
+require_once GFFM_DIR . 'includes/class-gffm-admin.php';
+require_once GFFM_DIR . 'includes/class-gffm-enrollment.php';
+require_once GFFM_DIR . 'includes/class-gffm-waitlist.php';
+require_once GFFM_DIR . 'includes/class-gffm-export.php';
+require_once GFFM_DIR . 'includes/class-gffm-invoices.php';
+require_once GFFM_DIR . 'includes/class-gffm-cron.php';
+require_once GFFM_DIR . 'includes/class-gffm-rest.php';
 
-foreach( $gffm_includes as $file ) { $path = GFFM_DIR . 'includes/' . $file; if( file_exists($path) ) require_once $path; }
+// New Vendor Portal integration
+require_once GFFM_DIR . 'includes/helpers/class-gffm-util.php';
+require_once GFFM_DIR . 'includes/portal/class-gffm-magic.php';
+require_once GFFM_DIR . 'includes/portal/class-gffm-vendor-link.php';
+require_once GFFM_DIR . 'includes/class-gffm-vendor-email.php';
+require_once GFFM_DIR . 'includes/portal/class-gffm-portal.php';
+require_once GFFM_DIR . 'includes/highlights/class-gffm-highlights.php';
 
 register_activation_hook(__FILE__, function(){
-    if ( class_exists('GFFM_Roles') ) { GFFM_Roles::add_roles(); }
+    if ( class_exists('GFFM_Roles') ) {
+        GFFM_Roles::add_roles();
+        if ( method_exists('GFFM_Roles', 'ensure_vendor_role') ) {
+            GFFM_Roles::ensure_vendor_role();
+        }
+    } else {
+        add_role('gffm_vendor', 'Vendor', ['read'=>true,'upload_files'=>true]);
+    }
     if ( class_exists('GFFM_Post_Types') ) { GFFM_Post_Types::init(); flush_rewrite_rules(); }
 });
 

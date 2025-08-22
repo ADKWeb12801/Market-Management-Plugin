@@ -49,6 +49,7 @@ class GFFM_Settings {
         echo '<div class="gffm-admin-h"><img class="gffm-logo" src="'.esc_url(GFFM_URL.'assets/logo.png').'" alt="logo"/><h1>'.esc_html__('Market Manager','gffm').'</h1></div>';
         echo '<div class="gffm-cards">';
         echo '<a class="gffm-card" href="'.admin_url('admin.php?page=gffm_settings').'"><h3>'.esc_html__('Settings','gffm').'</h3><p>'.esc_html__('Configure emails, vendors mode, capacity, and more.','gffm').'</p></a>';
+        echo '<a class="gffm-card" href="'.admin_url('admin.php?page=gffm_vendor_portal').'"><h3>'.esc_html__('Vendor Portal','gffm').'</h3><p>'.esc_html__('Manage portal week start, profile fields, and invite templates.','gffm').'</p></a>';
         echo '<a class="gffm-card" href="'.admin_url('admin.php?page=gffm_assignment').'"><h3>'.esc_html__('Vendor Assignment','gffm').'</h3><p>'.esc_html__('Link existing vendor records or enable them for this system.','gffm').'</p></a>';
         echo '<a class="gffm-card" href="'.admin_url('admin.php?page=gffm_export').'"><h3>'.esc_html__('Export / Import','gffm').'</h3><p>'.esc_html__('Backup or migrate your data (CSV/JSON).','gffm').'</p></a>';
         echo '<a class="gffm-card" href="'.admin_url('edit.php?post_type=gffm_enrollment').'"><h3>'.esc_html__('Enrollments','gffm').'</h3><p>'.esc_html__('View & manage vendor signups and waitlist.','gffm').'</p></a>';

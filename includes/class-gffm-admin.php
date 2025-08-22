@@ -6,12 +6,15 @@ class GFFM_Admin {
         if( ! current_user_can('gffm_manage')) wp_die(__('You do not have permission.','gffm'));
         $nonce_action = 'gffm_assign_vendors';
         // Handle POST
-        if( isset($_POST['gffm_assign_submit']) && check_admin_referer($nonce_action) ){
+        if( (isset($_POST['gffm_assign_submit']) || isset($_POST['gffm_disable_submit'])) && check_admin_referer($nonce_action) ){
             $ids = isset($_POST['gffm_vendor_ids']) ? array_map('absint', (array)$_POST['gffm_vendor_ids']) : [];
-            foreach($ids as $vid){
-                update_post_meta($vid, '_gffm_enabled', '1');
+            if(isset($_POST['gffm_assign_submit'])){
+                foreach($ids as $vid){ update_post_meta($vid, '_gffm_enabled', '1'); }
+                echo '<div class="updated"><p>'.sprintf(esc_html__('%d vendors enabled for GFFM.','gffm'), count($ids)).'</p></div>';
+            } elseif(isset($_POST['gffm_disable_submit'])){
+                foreach($ids as $vid){ delete_post_meta($vid, '_gffm_enabled'); }
+                echo '<div class="updated"><p>'.sprintf(esc_html__('%d vendors disabled for GFFM.','gffm'), count($ids)).'</p></div>';
             }
-            echo '<div class="updated"><p>'.sprintf(esc_html__('%d vendors enabled for GFFM.','gffm'), count($ids)).'</p></div>';
         }
 
         // detect CPT to read from
@@ -41,7 +44,8 @@ class GFFM_Admin {
             echo '</tr>';
         }
         echo '</tbody></table>';
-        submit_button(__('Enable Selected Vendors','gffm'));
+        submit_button(__('Enable Selected Vendors','gffm'), 'primary', 'gffm_assign_submit');
+        submit_button(__('Disable Selected Vendors','gffm'), 'secondary', 'gffm_disable_submit');
         echo '</form></div>';
     }
 }
