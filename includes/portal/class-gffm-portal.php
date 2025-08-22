@@ -1,6 +1,7 @@
 <?php
 defined('ABSPATH') || exit;
 
+if ( ! class_exists( 'GFFM_Portal' ) ) {
 class GFFM_Portal {
   public static function init() {
     add_shortcode('gffm_portal', [__CLASS__, 'shortcode']);
@@ -215,3 +216,4 @@ class GFFM_Portal {
   }
 }
 GFFM_Portal::init();
+}

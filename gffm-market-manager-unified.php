@@ -36,11 +36,17 @@ require_once GFFM_DIR . 'includes/highlights/class-gffm-highlights.php';
 register_activation_hook(__FILE__, function(){
     if ( class_exists('GFFM_Roles') ) {
         GFFM_Roles::add_roles();
-        if ( method_exists('GFFM_Roles', 'ensure_vendor_role') ) {
-            GFFM_Roles::ensure_vendor_role();
-        }
     } else {
         add_role('gffm_vendor', 'Vendor', ['read'=>true,'upload_files'=>true]);
+        $admin = get_role('administrator');
+        if ( $admin ) {
+            if ( ! $admin->has_cap('gffm_manage') ) {
+                $admin->add_cap('gffm_manage');
+            }
+            if ( ! $admin->has_cap('publish_gffm_highlights') ) {
+                $admin->add_cap('publish_gffm_highlights');
+            }
+        }
     }
     if ( class_exists('GFFM_Post_Types') ) { GFFM_Post_Types::init(); flush_rewrite_rules(); }
 });
