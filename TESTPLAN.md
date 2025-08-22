@@ -10,4 +10,5 @@
    - Update profile fields and confirm post meta saves.
    - Submit a weekly highlight and ensure only one post per week.
 6. Place `[gffm_this_week]` on a page and confirm highlights appear.
-7. Uninstall plugin and confirm portal options are removed but posts remain.
+7. From **Vendor Assignment**, toggle a vendor's enable state and confirm the table reflects the change.
+8. Uninstall plugin and confirm portal options are removed but posts remain.

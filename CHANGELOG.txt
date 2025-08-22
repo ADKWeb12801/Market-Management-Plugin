@@ -1,3 +1,6 @@
+4.1.1 — Vendor Assignment Toggle
+- Added enable/disable toggle links on the Vendor Assignment page.
+
 4.1.0 — Vendor Portal Integration & Weekly Highlights
 - Added vendor magic-link authentication and portal dashboard.
 - Introduced `gffm_highlight` CPT and `[gffm_this_week]` shortcode.
