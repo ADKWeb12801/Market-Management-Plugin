@@ -7,13 +7,6 @@
       this.bindAjaxForms();
     },
     bindTabs: function(){
-      $('.gffm-tab-nav li').on('click keypress', function(e){
-        if(e.type === 'click' || e.key === 'Enter'){
-          const tab = $(this).data('tab');
-          $('.gffm-tab-nav li').removeClass('active').attr('aria-selected','false');
-          $(this).addClass('active').attr('aria-selected','true');
-          $('.gffm-tab-content').removeClass('active').attr('hidden', true);
-          $('#gffm-tab-'+tab).addClass('active').attr('hidden', false);
         }
       });
     },

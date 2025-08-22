@@ -69,7 +69,11 @@ class GFFM_Vendor_Link {
       $user = get_user_by('id', $uid);
     }
     $user_id = $user->ID;
-    $user->set_role('gffm_vendor');
+    if ( get_option('gffm_append_vendor_role','no') === 'yes' ) {
+      $user->add_role('gffm_vendor');
+    } else {
+      $user->set_role('gffm_vendor');
+    }
     update_user_meta($user_id, '_gffm_vendor_id', $vendor_id);
     update_post_meta($vendor_id, '_gffm_linked_user', $user_id);
     update_post_meta($vendor_id, '_gffm_portal_enabled', '1');
