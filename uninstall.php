@@ -7,4 +7,3 @@ delete_option('gffm_week_start_day');
 delete_option('gffm_profile_map_json');
 delete_option('gffm_invite_subject');
 delete_option('gffm_invite_body');
-delete_option('gffm_highlight_auto_publish');

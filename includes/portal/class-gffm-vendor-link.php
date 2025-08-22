@@ -6,27 +6,13 @@ class GFFM_Vendor_Link {
     add_action('add_meta_boxes', [__CLASS__, 'meta_box']);
     add_action('save_post', [__CLASS__, 'save_meta']);
     add_action('admin_post_gffm_invite_vendor', [__CLASS__, 'handle_invite']);
-    add_action('admin_post_gffm_revoke_vendor', [__CLASS__, 'handle_revoke']);
-    add_action('admin_notices', [__CLASS__, 'admin_notices']);
-    add_filter('manage_'.self::vendor_cpt().'_posts_columns', [__CLASS__,'add_column']);
-    add_action('manage_'.self::vendor_cpt().'_posts_custom_column', [__CLASS__,'render_column'], 10, 2);
+
   }
 
   public static function vendor_cpt(): string {
     return get_option('gffm_use_internal_vendors', 'no') === 'yes' ? 'gffm_vendor' : 'vendor';
   }
 
-  public static function add_column($cols){
-    $cols['gffm_portal'] = __('Portal Access','gffm');
-    return $cols;
-  }
-
-  public static function render_column($col, $post_id){
-    if('gffm_portal' === $col){
-      $enabled = get_post_meta($post_id,'_gffm_portal_enabled',true) === '1';
-      echo $enabled ? '<span class="dashicons dashicons-yes"></span>' : '&mdash;';
-    }
-  }
 
   public static function meta_box() {
     add_meta_box('gffm_vendor_portal', __('Vendor Portal Access','gffm'), [__CLASS__,'render_meta'], self::vendor_cpt(), 'side');
@@ -37,24 +23,13 @@ class GFFM_Vendor_Link {
     $linked  = (int) get_post_meta($post->ID, '_gffm_linked_user', true);
     $user    = $linked ? get_userdata($linked) : false;
     wp_nonce_field('gffm_vendor_portal','gffm_vendor_portal_nonce');
-    $stored_email = get_post_meta($post->ID, '_email', true);
-    echo '<p><label><input type="checkbox" name="gffm_portal_enabled" value="1" '.checked($enabled,true,false).' /> '.esc_html__('Enable portal access','gffm').'</label></p>';
-    echo '<p>'.esc_html__('Linked user:','gffm').' '.($user ? esc_html($user->user_email) : '&mdash;').'</p>';
-    if ( $user ) {
-      echo '<form method="post" action="'.esc_url(admin_url('admin-post.php')).'" style="margin-top:8px">';
-      echo '<input type="hidden" name="action" value="gffm_revoke_vendor"/>';
-      echo '<input type="hidden" name="vendor_id" value="'.absint($post->ID).'"/>';
-      wp_nonce_field('gffm_revoke_vendor','gffm_revoke_nonce');
-      echo '<p><button class="button">'.esc_html__('Revoke Access','gffm').'</button></p>';
-      echo '</form>';
-    }
-    echo '<hr/>';
+
     echo '<p><strong>'.esc_html__('Send Magic Link','gffm').'</strong></p>';
     echo '<form method="post" action="'.esc_url(admin_url('admin-post.php')).'">';
     echo '<input type="hidden" name="action" value="gffm_invite_vendor"/>';
     echo '<input type="hidden" name="vendor_id" value="'.absint($post->ID).'"/>';
     wp_nonce_field('gffm_invite_vendor','gffm_invite_nonce');
-    echo '<p><input type="email" required name="gffm_invite_email" class="widefat" value="'.esc_attr( $stored_email ).'" placeholder="'.esc_attr__('vendor@example.com','gffm').'"/></p>';
+
     echo '<p><button class="button">'.esc_html__('Send Invite','gffm').'</button></p>';
     echo '</form>';
   }
@@ -82,7 +57,7 @@ class GFFM_Vendor_Link {
       wp_safe_redirect( wp_get_referer() );
       exit;
     }
-    update_post_meta($vendor_id, '_email', $email);
+
     $user = get_user_by('email', $email);
     if ( ! $user ) {
       $pwd = wp_generate_password(12, false);
@@ -117,27 +92,6 @@ class GFFM_Vendor_Link {
     exit;
   }
 
-  public static function handle_revoke() {
-    if ( ! current_user_can('manage_options') && ! current_user_can('gffm_manage') ) {
-      wp_die(__('You do not have permission.','gffm'));
-    }
-    if ( ! isset($_POST['gffm_revoke_nonce']) || ! wp_verify_nonce($_POST['gffm_revoke_nonce'],'gffm_revoke_vendor') ) {
-      wp_die(__('Invalid nonce.','gffm'));
-    }
-    $vendor_id = isset($_POST['vendor_id']) ? absint($_POST['vendor_id']) : 0;
-    $user_id = (int) get_post_meta($vendor_id, '_gffm_linked_user', true);
-    if ( $vendor_id && $user_id ) {
-      delete_post_meta($vendor_id, '_gffm_linked_user');
-      update_post_meta($vendor_id, '_gffm_portal_enabled', '');
-      delete_user_meta($user_id, '_gffm_vendor_id');
-      $user = get_userdata($user_id);
-      if ( $user && in_array('gffm_vendor', $user->roles, true) ) {
-        $user->set_role('subscriber');
-      }
-    }
-    wp_safe_redirect( wp_get_referer() );
-    exit;
-  }
 
   public static function admin_notices() {
     if ( isset($_GET['gffm_invite']) && $_GET['gffm_invite'] === 'sent' ) {

@@ -28,4 +28,13 @@ class GFFM_Roles {
             ]);
         }
     }
+
+    public static function ensure_vendor_role(){
+        if( ! get_role('gffm_vendor') ){
+            add_role('gffm_vendor', __('Vendor','gffm'), [
+                'read' => true,
+                'upload_files' => true,
+            ]);
+        }
+    }
 }

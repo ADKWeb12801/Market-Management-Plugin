@@ -30,7 +30,7 @@ require_once GFFM_DIR . 'includes/class-gffm-rest.php';
 require_once GFFM_DIR . 'includes/helpers/class-gffm-util.php';
 require_once GFFM_DIR . 'includes/portal/class-gffm-magic.php';
 require_once GFFM_DIR . 'includes/portal/class-gffm-vendor-link.php';
-require_once GFFM_DIR . 'includes/class-gffm-vendor-email.php';
+
 require_once GFFM_DIR . 'includes/portal/class-gffm-portal.php';
 require_once GFFM_DIR . 'includes/highlights/class-gffm-highlights.php';
 

@@ -44,11 +44,7 @@ class GFFM_Portal {
       'sanitize_callback'=>'wp_kses_post',
       'default'=>"Hello {vendor_title},\n\nYour one-click sign-in link:\n{portal_url}\n\nThis link will expire in 24 hours.\n– {site_name}",
     ]);
-    register_setting('gffm_vendor_portal', 'gffm_highlight_auto_publish', [
-      'type'=>'string',
-      'sanitize_callback'=>function($v){ return $v==='yes'?'yes':'no'; },
-      'default'=>'no',
-    ]);
+
   }
 
   public static function render_settings() {
@@ -69,9 +65,7 @@ class GFFM_Portal {
     echo '<td><input type="text" name="gffm_invite_subject" id="gffm_invite_subject" class="regular-text" value="'.esc_attr(get_option('gffm_invite_subject','Your Vendor Portal Link – {site_name}')).'"/></td></tr>';
     echo '<tr><th><label for="gffm_invite_body">'.esc_html__('Invite Email Body','gffm').'</label></th>';
     echo '<td><textarea name="gffm_invite_body" id="gffm_invite_body" rows="6" cols="50" class="large-text code">'.esc_textarea(get_option('gffm_invite_body',"Hello {vendor_title},\n\nYour one-click sign-in link:\n{portal_url}\n\nThis link will expire in 24 hours.\n– {site_name}")).'</textarea><p class="description">'.esc_html__('Placeholders: {site_name}, {vendor_title}, {portal_url}','gffm').'</p></td></tr>';
-    $auto = get_option('gffm_highlight_auto_publish','no');
-    echo '<tr><th><label for="gffm_highlight_auto_publish">'.esc_html__('Auto-publish Highlights','gffm').'</label></th>';
-    echo '<td><input type="checkbox" name="gffm_highlight_auto_publish" id="gffm_highlight_auto_publish" value="yes" '.checked($auto,'yes',false).' /> <span class="description">'.esc_html__('Publish highlights immediately without moderation.','gffm').'</span></td></tr>';
+
     echo '</table>';
     submit_button();
     echo '</form></div>';
@@ -139,7 +133,7 @@ class GFFM_Portal {
       'author' => get_current_user_id(),
       'meta_key' => '_gffm_week_key',
       'meta_value' => $week_key,
-      'post_status' => ['draft','publish','pending'],
+
       'posts_per_page' => 1,
     ]);
     $highlight = $current ? $current[0] : null;
@@ -198,23 +192,17 @@ class GFFM_Portal {
       'author' => get_current_user_id(),
       'meta_key' => '_gffm_week_key',
       'meta_value' => $week_key,
-      'post_status' => ['draft','publish','pending'],
+
       'posts_per_page' => 1,
     ]);
     if ( $existing ) {
       $post_id = $existing[0]->ID;
-      $args = ['ID'=>$post_id,'post_title'=>$title,'post_content'=>$content];
-      if ( current_user_can('publish_gffm_highlights') || get_option('gffm_highlight_auto_publish','no') === 'yes' ) {
-        $args['post_status'] = 'publish';
-      }
-      wp_update_post($args);
-    } else {
-      $status = ( get_option('gffm_highlight_auto_publish','no') === 'yes' || current_user_can('publish_gffm_highlights') ) ? 'publish' : 'pending';
+
       $post_id = wp_insert_post([
         'post_type'=>'gffm_highlight',
         'post_title'=>$title,
         'post_content'=>$content,
-        'post_status'=>$status,
+
         'post_author'=>get_current_user_id(),
       ]);
     }
