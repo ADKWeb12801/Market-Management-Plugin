@@ -7,17 +7,6 @@
       this.bindAjaxForms();
     },
     bindTabs: function(){
-      const setActive = function(tab){
-        $('.gffm-tab-nav li').removeClass('active').attr('aria-selected','false');
-        $('.gffm-tab-content').removeClass('active').attr('hidden', true);
-        $('[data-tab="'+tab+'"]').addClass('active').attr('aria-selected','true');
-        $('#gffm-tab-'+tab).addClass('active').attr('hidden', false);
-      };
-      const first = $('.gffm-tab-nav li.active').data('tab');
-      if(first){ setActive(first); }
-      $('.gffm-tab-nav li').on('click keypress', function(e){
-        if(e.type === 'click' || e.key === 'Enter'){
-          setActive($(this).data('tab'));
         }
       });
     },

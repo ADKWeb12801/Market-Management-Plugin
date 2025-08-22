@@ -159,6 +159,16 @@ class GFFM_Portal {
       wp_enqueue_media();
     }
     if ( ! is_user_logged_in() ) {
+      wp_enqueue_style('gffm-portal', GFFM_URL.'assets/portal.css', [], GFFM_VERSION);
+      wp_enqueue_script('gffm-portal', GFFM_URL.'assets/portal.js', ['jquery'], GFFM_VERSION, true);
+      wp_localize_script('gffm-portal', 'gffmPortal', [
+        'ajaxurl' => admin_url('admin-ajax.php'),
+        'i18n' => [
+          'show' => __('Show password','gffm'),
+          'hide' => __('Hide password','gffm'),
+          'select' => __('Select Image','gffm'),
+        ],
+      ]);
       $methods = get_option('gffm_auth_enabled_methods', ['password','magic','google','facebook']);
       $out = '<div class="gffm-login-container">';
       $branding = get_option('gffm_auth_login_branding', '');
@@ -207,7 +217,6 @@ class GFFM_Portal {
         $out .= '<p class="gffm-login-field"><label for="gffm_username">'.esc_html__('Username','gffm').'</label><input type="text" id="gffm_username" name="gffm_username" /></p>';
         $out .= '<p class="gffm-login-field gffm-password-field"><label for="gffm_password">'.esc_html__('Password','gffm').'</label><input type="password" id="gffm_password" name="gffm_password" /><button type="button" class="gffm-toggle-pass" aria-label="'.esc_attr__('Show password','gffm').'">&#128065;</button></p>';
         wp_nonce_field('gffm_login','gffm_login_nonce');
-        $out .= '<p><button class="button button-primary">'.esc_html__('Sign In','gffm').'</button></p><p class="description">'.esc_html__('If your host shows a "Weak Password" page, reset your password and sign in again.','gffm').'</p>';
         $out .= '</fieldset></form>';
       }
       if ( in_array('google', $methods, true) && get_option('gffm_auth_google_client_id') && get_option('gffm_auth_google_client_secret') ) {
