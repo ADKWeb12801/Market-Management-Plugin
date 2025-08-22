@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GFFM Market Manager — Unified (Magic Link Fix)
  * Description: Unified Market Manager with Vendor↔User bridge, Magic-Link login that authenticates users, Vendor dashboard with SCF fields + Weekly Highlight.
- * Version: 4.1.1
+ * Version: 4.2.0
  * Author: ADK Web Solutions
  * Requires at least: 6.0
  * Requires PHP: 7.4
@@ -11,7 +11,7 @@
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
-define('GFFM_VERSION','4.1.1');
+define('GFFM_VERSION','4.2.0');
 define('GFFM_DIR', plugin_dir_path(__FILE__));
 define('GFFM_URL', plugin_dir_url(__FILE__));
 
