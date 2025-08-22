@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GFFM Market Manager — Unified (Magic Link Fix)
  * Description: Unified Market Manager with Vendor↔User bridge, Magic-Link login that authenticates users, Vendor dashboard with SCF fields + Weekly Highlight.
- * Version: 4.1.1
+ * Version: 4.2.0
  * Author: ADK Web Solutions
  * Requires at least: 6.0
  * Requires PHP: 7.4
@@ -11,7 +11,7 @@
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
-define('GFFM_VERSION','4.1.1');
+define('GFFM_VERSION','4.2.0');
 define('GFFM_DIR', plugin_dir_path(__FILE__));
 define('GFFM_URL', plugin_dir_url(__FILE__));
 
@@ -21,18 +21,13 @@ require_once GFFM_DIR . 'includes/class-gffm-settings.php';
 require_once GFFM_DIR . 'includes/class-gffm-admin.php';
 require_once GFFM_DIR . 'includes/class-gffm-enrollment.php';
 require_once GFFM_DIR . 'includes/class-gffm-waitlist.php';
-require_once GFFM_DIR . 'includes/class-gffm-export.php';
-require_once GFFM_DIR . 'includes/class-gffm-invoices.php';
-require_once GFFM_DIR . 'includes/class-gffm-cron.php';
-require_once GFFM_DIR . 'includes/class-gffm-rest.php';
 
-// New Vendor Portal integration
 require_once GFFM_DIR . 'includes/helpers/class-gffm-util.php';
 require_once GFFM_DIR . 'includes/portal/class-gffm-magic.php';
 require_once GFFM_DIR . 'includes/portal/class-gffm-vendor-link.php';
-require_once GFFM_DIR . 'includes/portal/class-gffm-portal.php';
-require_once GFFM_DIR . 'includes/portal/class-gffm-oauth.php';
 require_once GFFM_DIR . 'includes/class-gffm-portal-account.php';
+require_once GFFM_DIR . 'includes/portal/class-gffm-portal.php';
+
 require_once GFFM_DIR . 'includes/highlights/class-gffm-highlights.php';
 
 register_activation_hook(__FILE__, function(){
@@ -41,13 +36,8 @@ register_activation_hook(__FILE__, function(){
     } else {
         add_role('gffm_vendor', 'Vendor', ['read'=>true,'upload_files'=>true]);
         $admin = get_role('administrator');
-        if ( $admin ) {
-            if ( ! $admin->has_cap('gffm_manage') ) {
-                $admin->add_cap('gffm_manage');
-            }
-            if ( ! $admin->has_cap('publish_gffm_highlights') ) {
-                $admin->add_cap('publish_gffm_highlights');
-            }
+        if ( $admin && ! $admin->has_cap('gffm_manage') ) {
+            $admin->add_cap('gffm_manage');
         }
     }
     if ( class_exists('GFFM_Post_Types') ) { GFFM_Post_Types::init(); flush_rewrite_rules(); }

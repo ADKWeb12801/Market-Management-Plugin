@@ -7,6 +7,8 @@ class GFFM_Portal {
     add_shortcode('gffm_portal', [__CLASS__, 'shortcode']);
     add_action('admin_menu', [__CLASS__, 'menu']);
     add_action('admin_init', [__CLASS__, 'register_settings']);
+    add_action('wp_ajax_gffm_profile_save', [__CLASS__, 'ajax_profile_save']);
+    add_action('wp_ajax_gffm_highlight_save', [__CLASS__, 'ajax_highlight_save']);
   }
 
   public static function default_mapping(): string {
@@ -18,6 +20,16 @@ class GFFM_Portal {
       'vendor_instagram' => ['label'=>'Instagram','type'=>'url'],
       'vendor_logo' => ['label'=>'Logo','type'=>'image'],
     ], JSON_PRETTY_PRINT);
+  }
+
+  public static function sanitize_mapping($v) {
+    $decoded = json_decode($v, true);
+    if (null === $decoded || json_last_error() !== JSON_ERROR_NONE) {
+      $prev = get_option('gffm_profile_map_json', self::default_mapping());
+      add_settings_error('gffm_profile_map_json', 'gffm_profile_map_json', __('Invalid JSON; previous mapping restored.','gffm'));
+      return $prev;
+    }
+    return wp_json_encode($decoded, JSON_PRETTY_PRINT);
   }
 
   public static function menu() {
@@ -32,8 +44,13 @@ class GFFM_Portal {
     ]);
     register_setting('gffm_vendor_portal', 'gffm_profile_map_json', [
       'type' => 'string',
-      'sanitize_callback' => function($v){ return wp_kses_post($v); },
+      'sanitize_callback' => [__CLASS__, 'sanitize_mapping'],
       'default' => self::default_mapping(),
+    ]);
+    register_setting('gffm_vendor_portal', 'gffm_append_vendor_role', [
+      'type' => 'string',
+      'sanitize_callback' => function($v){ return $v === 'yes' ? 'yes' : 'no'; },
+      'default' => 'no',
     ]);
     register_setting('gffm_vendor_portal', 'gffm_invite_subject', [
       'type'=>'string',
@@ -94,7 +111,7 @@ class GFFM_Portal {
     }
     echo '</select></td></tr>';
     echo '<tr><th><label for="gffm_profile_map_json">'.esc_html__('Profile Field Mapping (JSON)','gffm').'</label></th>';
-    echo '<td><textarea name="gffm_profile_map_json" id="gffm_profile_map_json" rows="10" cols="50" class="large-text code">'.esc_textarea(get_option('gffm_profile_map_json', self::default_mapping())).'</textarea></td></tr>';
+    echo '<td><textarea name="gffm_profile_map_json" id="gffm_profile_map_json" rows="10" cols="50" class="large-text code">'.esc_textarea(get_option('gffm_profile_map_json', self::default_mapping())).'</textarea> <span id="gffm-json-valid" aria-live="polite"></span></td></tr>';
     echo '<tr><th><label for="gffm_invite_subject">'.esc_html__('Invite Email Subject','gffm').'</label></th>';
     echo '<td><input type="text" name="gffm_invite_subject" id="gffm_invite_subject" class="regular-text" value="'.esc_attr(get_option('gffm_invite_subject','Your Vendor Portal Link – {site_name}')).'"/></td></tr>';
     echo '<tr><th><label for="gffm_invite_body">'.esc_html__('Invite Email Body','gffm').'</label></th>';
@@ -115,17 +132,35 @@ class GFFM_Portal {
       echo '<tr><th><label for="gffm_auth_facebook_app_id">'.esc_html__('Facebook App ID','gffm').'</label></th><td><input type="text" id="gffm_auth_facebook_app_id" name="gffm_auth_facebook_app_id" class="regular-text" value="'.esc_attr(get_option('gffm_auth_facebook_app_id','')).'"/></td></tr>';
       echo '<tr><th><label for="gffm_auth_facebook_app_secret">'.esc_html__('Facebook App Secret','gffm').'</label></th><td><input type="text" id="gffm_auth_facebook_app_secret" name="gffm_auth_facebook_app_secret" class="regular-text" value="'.esc_attr(get_option('gffm_auth_facebook_app_secret','')).'"/></td></tr>';
     }
-    echo '<tr><th>'.esc_html__('Redirect URI','gffm').'</th><td><input type="text" readonly class="regular-text" value="'.esc_attr(home_url('/vendor-portal/')).'"/></td></tr>';
-    echo '<tr><th><label for="gffm_auth_login_branding">'.esc_html__('Login Branding','gffm').'</label></th><td><input type="text" id="gffm_auth_login_branding" name="gffm_auth_login_branding" class="regular-text" value="'.esc_attr(get_option('gffm_auth_login_branding','')).'"/></td></tr>';
+    $redir = esc_url(home_url('/vendor-portal/'));
+    echo '<tr><th>'.esc_html__('Redirect URI','gffm').'</th><td><input type="text" readonly class="regular-text" value="'.$redir.'"/> <button type="button" class="button gffm-copy-redirect" data-copy="'.$redir.'">'.esc_html__('Copy','gffm').'</button> <span class="gffm-copy-feedback" style="display:none;">'.esc_html__('Copied!','gffm').'</span></td></tr>';
+    echo '<tr><th><label for="gffm_auth_login_branding">'.esc_html__('Login Branding','gffm').'</label></th><td><input type="text" id="gffm_auth_login_branding" name="gffm_auth_login_branding" class="regular-text" value="'.esc_attr(get_option('gffm_auth_login_branding','')).'"/><p class="description">'.esc_html__('Some hosts may display a "Weak Password" page; resetting the password may be required.','gffm').'</p></td></tr>';
+    $append = get_option('gffm_append_vendor_role','no');
+    echo '<tr><th><label for="gffm_append_vendor_role">'.esc_html__('Append Vendor Role','gffm').'</label></th><td><input type="checkbox" id="gffm_append_vendor_role" name="gffm_append_vendor_role" value="yes" '.checked($append,'yes',false).'/> '.esc_html__('Add gffm_vendor role in addition to existing roles when inviting users.','gffm').'</td></tr>';
     echo '</table>';
     submit_button();
-    echo '</form></div>';
+    echo '</form>';
+    echo '<script>(function(){var ta=document.getElementById("gffm_profile_map_json"),badge=document.getElementById("gffm-json-valid"),copyBtn=document.querySelector(".gffm-copy-redirect"),fb=document.querySelector(".gffm-copy-feedback");function v(){try{JSON.parse(ta.value);badge.textContent="'.esc_js(__('JSON valid','gffm')).'";badge.style.color="green";}catch(e){badge.textContent="'.esc_js(__('Invalid JSON','gffm')).'";badge.style.color="red";}}if(ta){ta.addEventListener("keyup",v);v();}if(copyBtn){copyBtn.addEventListener("click",function(){navigator.clipboard.writeText(copyBtn.dataset.copy).then(function(){fb.style.display="inline";setTimeout(function(){fb.style.display="none";},2000);});});}})();</script>';
+    echo '</div>';
   }
 
   public static function shortcode($atts, $content = '') {
+    wp_enqueue_style('gffm-portal', GFFM_URL.'assets/portal.css', [], GFFM_VERSION);
+    wp_enqueue_script('gffm-portal', GFFM_URL.'assets/portal.js', ['jquery'], GFFM_VERSION, true);
+    wp_localize_script('gffm-portal', 'gffmPortal', [
+      'ajaxurl' => admin_url('admin-ajax.php'),
+      'i18n' => [
+        'show' => __('Show password','gffm'),
+        'hide' => __('Hide password','gffm'),
+        'select' => __('Select Image','gffm'),
+      ],
+    ]);
+    if ( is_user_logged_in() ) {
+      wp_enqueue_media();
+    }
     if ( ! is_user_logged_in() ) {
       $methods = get_option('gffm_auth_enabled_methods', ['password','magic','google','facebook']);
-      $out = '<div class="gffm-login">';
+      $out = '<div class="gffm-login-container">';
       $branding = get_option('gffm_auth_login_branding', '');
       if ( $branding ) {
         $out .= '<h2>'.esc_html($branding).'</h2>';
@@ -139,22 +174,41 @@ class GFFM_Portal {
         ];
         $user = wp_signon($creds, false);
         if ( is_wp_error($user) ) {
-          $error = __('Invalid username or password.','gffm');
+          $codes = $user->get_error_codes();
+          $map = [
+            'invalid_username'  => __('Unknown username.','gffm'),
+            'incorrect_password'=> __('Incorrect password.','gffm'),
+          ];
+          foreach ( $codes as $code ) {
+            if ( isset( $map[ $code ] ) ) {
+              $error = $map[ $code ];
+              break;
+            }
+          }
+          if ( ! $error ) {
+            $error = $user->get_error_message();
+          }
         } else {
-          wp_safe_redirect(home_url('/vendor-portal/'));
-          exit;
+          $vendor_id = (int) get_user_meta($user->ID, '_gffm_vendor_id', true);
+          if ( ! $vendor_id || ! get_post_meta($vendor_id, '_gffm_portal_enabled', true) ) {
+            wp_logout();
+            $error = __('Your account is not linked to a vendor or portal access is disabled.','gffm');
+          } else {
+            wp_safe_redirect(home_url('/vendor-portal/'));
+            exit;
+          }
         }
       }
       if ( $error ) {
-        $out .= '<div class="gffm-notice">'.esc_html($error).'</div>';
+        $out .= '<div class="gffm-notice gffm-notice-error" aria-live="polite">'.esc_html($error).'</div>';
       }
       if ( in_array('password', $methods, true) ) {
-        $out .= '<form method="post" class="gffm-login-form">';
-        $out .= '<p><label>'.esc_html__('Username','gffm').'<br/><input type="text" name="gffm_username" class="regular-text"/></label></p>';
-        $out .= '<p><label>'.esc_html__('Password','gffm').'<br/><input type="password" name="gffm_password" class="regular-text"/></label></p>';
+        $out .= '<form method="post" class="gffm-login-form"><fieldset>';
+        $out .= '<p class="gffm-login-field"><label for="gffm_username">'.esc_html__('Username','gffm').'</label><input type="text" id="gffm_username" name="gffm_username" /></p>';
+        $out .= '<p class="gffm-login-field gffm-password-field"><label for="gffm_password">'.esc_html__('Password','gffm').'</label><input type="password" id="gffm_password" name="gffm_password" /><button type="button" class="gffm-toggle-pass" aria-label="'.esc_attr__('Show password','gffm').'">&#128065;</button></p>';
         wp_nonce_field('gffm_login','gffm_login_nonce');
-        $out .= '<p><button class="button button-primary">'.esc_html__('Sign In','gffm').'</button></p>';
-        $out .= '</form>';
+        $out .= '<p><button class="button button-primary">'.esc_html__('Sign In','gffm').'</button></p><p class="description">'.esc_html__('If your host shows a "Weak Password" page, reset your password and sign in again.','gffm').'</p>';
+        $out .= '</fieldset></form>';
       }
       if ( in_array('google', $methods, true) && get_option('gffm_auth_google_client_id') && get_option('gffm_auth_google_client_secret') ) {
         $state = wp_create_nonce('gffm_oauth_google');
@@ -175,15 +229,12 @@ class GFFM_Portal {
       return $out;
     }
     $vendor_id = GFFM_Util::current_user_vendor_id();
-    if ( ! $vendor_id ) {
-      return '<p>'.esc_html__('Your account is not linked to a vendor.','gffm').'</p>';
+    if ( ! $vendor_id || ! get_post_meta($vendor_id, '_gffm_portal_enabled', true) ) {
+      return '<p>'.esc_html__('Your account is not linked to a vendor or portal access is disabled.','gffm').'</p>';
     }
     if ( ! GFFM_Util::can_edit_vendor($vendor_id) ) {
       return '<p>'.esc_html__('You do not have permission to access this vendor.','gffm').'</p>';
     }
-    wp_enqueue_style('gffm-portal', GFFM_URL.'assets/portal.css', [], GFFM_VERSION);
-    wp_enqueue_script('gffm-portal', GFFM_URL.'assets/portal.js', ['jquery'], GFFM_VERSION, true);
-    wp_enqueue_media();
 
     $out = '';
     $notice = '';
@@ -195,16 +246,16 @@ class GFFM_Portal {
     }
 
     if ( $notice ) {
-      $out .= '<div class="gffm-notice">'.esc_html($notice).'</div>';
+      $out .= '<div class="gffm-notice gffm-notice-info" aria-live="polite">'.esc_html($notice).'</div>';
     }
 
     $map = json_decode(get_option('gffm_profile_map_json', self::default_mapping()), true);
     if ( ! is_array($map) ) $map = [];
 
     $out .= '<div class="gffm-portal-tabs">';
-    $out .= '<ul class="gffm-tab-nav"><li class="active" data-tab="profile">'.esc_html__('Profile','gffm').'</li><li data-tab="highlight">'.esc_html__('Weekly Highlight','gffm').'</li></ul>';
-    $out .= '<div class="gffm-tab-content active" id="gffm-tab-profile">';
-    $out .= '<form method="post">';
+    $out .= '<ul class="gffm-tab-nav" role="tablist"><li id="gffm-tab-profile-label" class="active" role="tab" tabindex="0" aria-controls="gffm-tab-profile" aria-selected="true" data-tab="profile">'.esc_html__('Profile','gffm').'</li><li id="gffm-tab-highlight-label" role="tab" tabindex="0" aria-controls="gffm-tab-highlight" aria-selected="false" data-tab="highlight">'.esc_html__('Weekly Highlight','gffm').'</li></ul>';
+    $out .= '<div class="gffm-tab-content active" id="gffm-tab-profile" role="tabpanel" aria-labelledby="gffm-tab-profile-label">';
+    $out .= '<form method="post" id="gffm-profile-form">';
     wp_nonce_field('gffm_profile_save','gffm_profile_nonce');
     foreach ($map as $key => $field) {
       $type = $field['type'] ?? 'text';
@@ -240,8 +291,8 @@ class GFFM_Portal {
     $content = $highlight ? $highlight->post_content : '';
     $image_id = $highlight ? get_post_thumbnail_id($highlight->ID) : 0;
 
-    $out .= '<div class="gffm-tab-content" id="gffm-tab-highlight">';
-    $out .= '<form method="post">';
+    $out .= '<div class="gffm-tab-content" id="gffm-tab-highlight" role="tabpanel" aria-labelledby="gffm-tab-highlight-label" hidden>';
+    $out .= '<form method="post" id="gffm-highlight-form">';
     wp_nonce_field('gffm_highlight_save','gffm_highlight_nonce');
     $out .= '<p><label>'.esc_html__('Headline','gffm').'<br/><input type="text" name="hl_title" class="widefat" value="'.esc_attr($title).'"/></label></p>';
     $out .= '<p><label>'.esc_html__('Details','gffm').'<br/><textarea name="hl_content" class="widefat">'.esc_textarea($content).'</textarea></label></p>';
@@ -313,6 +364,26 @@ class GFFM_Portal {
       }
     }
     return __('Highlight saved.','gffm');
+  }
+
+  public static function ajax_profile_save() {
+    check_ajax_referer('gffm_profile_save', 'nonce');
+    $vendor_id = GFFM_Util::current_user_vendor_id();
+    if ( ! $vendor_id ) {
+      wp_send_json_error(['message'=>__('Vendor not found.','gffm')]);
+    }
+    $msg = self::handle_profile_save($vendor_id);
+    wp_send_json_success(['message'=>$msg]);
+  }
+
+  public static function ajax_highlight_save() {
+    check_ajax_referer('gffm_highlight_save', 'nonce');
+    $vendor_id = GFFM_Util::current_user_vendor_id();
+    if ( ! $vendor_id ) {
+      wp_send_json_error(['message'=>__('Vendor not found.','gffm')]);
+    }
+    $msg = self::handle_highlight_save($vendor_id);
+    wp_send_json_success(['message'=>$msg]);
   }
 }
 GFFM_Portal::init();

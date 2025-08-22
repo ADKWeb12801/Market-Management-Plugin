@@ -41,6 +41,11 @@ class GFFM_Settings {
             'sanitize_callback' => 'absint',
             'default' => 0
         ]);
+        register_setting('gffm_settings', 'gffm_remove_data_on_uninstall', [
+            'type' => 'string',
+            'sanitize_callback' => function($v){ return $v==='yes'?'yes':'no'; },
+            'default' => 'no'
+        ]);
     }
 
     public static function render_dashboard(){
@@ -77,6 +82,8 @@ class GFFM_Settings {
         echo '<tr><th><label for="gffm_max_vendors">'.esc_html__('Max Active Vendors (0 = unlimited)','gffm').'</label></th>';
         echo '<td><input type="number" min="0" step="1" name="gffm_max_vendors" id="gffm_max_vendors" value="'.esc_attr(get_option('gffm_max_vendors',0)).'"/></td></tr>';
 
+        $remove = get_option('gffm_remove_data_on_uninstall','no');
+        echo '<tr><th><label for="gffm_remove_data_on_uninstall">'.esc_html__('Remove Data on Uninstall','gffm').'</label></th><td><input type="checkbox" id="gffm_remove_data_on_uninstall" name="gffm_remove_data_on_uninstall" value="yes" '.checked($remove,'yes',false).'/> '.esc_html__('Delete plugin settings when uninstalling.','gffm').'</td></tr>';
         echo '</table>';
         submit_button();
         echo '</form></div>';

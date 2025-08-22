@@ -1,9 +1,24 @@
 <?php
 if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) { die; }
-delete_option('gffm_notification_email');
-delete_option('gffm_use_internal_vendors');
-delete_option('gffm_max_vendors');
-delete_option('gffm_week_start_day');
-delete_option('gffm_profile_map_json');
-delete_option('gffm_invite_subject');
-delete_option('gffm_invite_body');
+if ( get_option('gffm_remove_data_on_uninstall','no') === 'yes' ) {
+    $opts = [
+        'gffm_notification_email',
+        'gffm_use_internal_vendors',
+        'gffm_max_vendors',
+        'gffm_week_start_day',
+        'gffm_profile_map_json',
+        'gffm_invite_subject',
+        'gffm_invite_body',
+        'gffm_auth_enabled_methods',
+        'gffm_auth_google_client_id',
+        'gffm_auth_google_client_secret',
+        'gffm_auth_facebook_app_id',
+        'gffm_auth_facebook_app_secret',
+        'gffm_auth_login_branding',
+        'gffm_append_vendor_role',
+        'gffm_remove_data_on_uninstall',
+    ];
+    foreach ( $opts as $opt ) { delete_option( $opt ); }
+    global $wpdb;
+    $wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_gffm_%' OR option_name LIKE '_transient_timeout_gffm_%'" );
+}
