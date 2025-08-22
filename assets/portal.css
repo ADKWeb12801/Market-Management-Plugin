@@ -1,0 +1,10 @@
+.gffm-portal-tabs{max-width:600px;margin:0 auto}
+.gffm-tab-nav{display:flex;list-style:none;padding:0;margin:0 0 1em;border-bottom:1px solid #ccc}
+.gffm-tab-nav li{margin-right:1em;padding:0.5em 1em;cursor:pointer}
+.gffm-tab-nav li.active{border-bottom:2px solid #000}
+.gffm-tab-content{display:none}
+.gffm-tab-content.active{display:block}
+.gffm-highlight-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px}
+.gffm-highlight-card{border:1px solid #eee;padding:10px;background:#fff}
+.gffm-notice{margin:1em 0;padding:0.5em;background:#e6ffed;border-left:4px solid #46b450}
+.gffm-img-preview img{max-width:100%;height:auto;display:block;margin-bottom:4px}
