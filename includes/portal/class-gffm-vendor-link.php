@@ -6,12 +6,13 @@ class GFFM_Vendor_Link {
     add_action('add_meta_boxes', [__CLASS__, 'meta_box']);
     add_action('save_post', [__CLASS__, 'save_meta']);
     add_action('admin_post_gffm_invite_vendor', [__CLASS__, 'handle_invite']);
-    add_action('admin_notices', [__CLASS__, 'admin_notices']);
+
   }
 
   public static function vendor_cpt(): string {
     return get_option('gffm_use_internal_vendors', 'no') === 'yes' ? 'gffm_vendor' : 'vendor';
   }
+
 
   public static function meta_box() {
     add_meta_box('gffm_vendor_portal', __('Vendor Portal Access','gffm'), [__CLASS__,'render_meta'], self::vendor_cpt(), 'side');
@@ -22,15 +23,13 @@ class GFFM_Vendor_Link {
     $linked  = (int) get_post_meta($post->ID, '_gffm_linked_user', true);
     $user    = $linked ? get_userdata($linked) : false;
     wp_nonce_field('gffm_vendor_portal','gffm_vendor_portal_nonce');
-    echo '<p><label><input type="checkbox" name="gffm_portal_enabled" value="1" '.checked($enabled,true,false).' /> '.esc_html__('Enable portal access','gffm').'</label></p>';
-    echo '<p>'.esc_html__('Linked user:','gffm').' '.($user ? esc_html($user->user_email) : '&mdash;').'</p>';
-    echo '<hr/>'; 
+
     echo '<p><strong>'.esc_html__('Send Magic Link','gffm').'</strong></p>';
     echo '<form method="post" action="'.esc_url(admin_url('admin-post.php')).'">';
     echo '<input type="hidden" name="action" value="gffm_invite_vendor"/>';
     echo '<input type="hidden" name="vendor_id" value="'.absint($post->ID).'"/>';
     wp_nonce_field('gffm_invite_vendor','gffm_invite_nonce');
-    echo '<p><input type="email" required name="gffm_invite_email" class="widefat" placeholder="'.esc_attr__('vendor@example.com','gffm').'"/></p>';
+
     echo '<p><button class="button">'.esc_html__('Send Invite','gffm').'</button></p>';
     echo '</form>';
   }
@@ -58,6 +57,7 @@ class GFFM_Vendor_Link {
       wp_safe_redirect( wp_get_referer() );
       exit;
     }
+
     $user = get_user_by('email', $email);
     if ( ! $user ) {
       $pwd = wp_generate_password(12, false);
@@ -91,6 +91,7 @@ class GFFM_Vendor_Link {
     wp_safe_redirect( add_query_arg('gffm_invite','sent', wp_get_referer()) );
     exit;
   }
+
 
   public static function admin_notices() {
     if ( isset($_GET['gffm_invite']) && $_GET['gffm_invite'] === 'sent' ) {

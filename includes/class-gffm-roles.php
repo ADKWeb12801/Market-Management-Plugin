@@ -7,14 +7,25 @@ class GFFM_Roles {
             'read' => true,
             'gffm_manage' => true,
             'edit_posts' => false,
+            'publish_gffm_highlights' => true,
         ]);
 
         self::ensure_vendor_role();
 
         // map caps to admin too
         $admin = get_role('administrator');
-        if($admin && !$admin->has_cap('gffm_manage')){
-            $admin->add_cap('gffm_manage');
+        if($admin){
+            if(!$admin->has_cap('gffm_manage')){ $admin->add_cap('gffm_manage'); }
+            if(!$admin->has_cap('publish_gffm_highlights')){ $admin->add_cap('publish_gffm_highlights'); }
+        }
+    }
+
+    public static function ensure_vendor_role(){
+        if( ! get_role('gffm_vendor') ){
+            add_role('gffm_vendor', __('Vendor','gffm'), [
+                'read' => true,
+                'upload_files' => true,
+            ]);
         }
     }
 
