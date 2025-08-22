@@ -7,6 +7,8 @@ class GFFM_Portal {
     add_shortcode('gffm_portal', [__CLASS__, 'shortcode']);
     add_action('admin_menu', [__CLASS__, 'menu']);
     add_action('admin_init', [__CLASS__, 'register_settings']);
+    add_action('wp_ajax_gffm_profile_save', [__CLASS__, 'ajax_profile_save']);
+    add_action('wp_ajax_gffm_highlight_save', [__CLASS__, 'ajax_highlight_save']);
   }
 
   public static function default_mapping(): string {
@@ -124,8 +126,18 @@ class GFFM_Portal {
 
   public static function shortcode($atts, $content = '') {
     if ( ! is_user_logged_in() ) {
+      wp_enqueue_style('gffm-portal', GFFM_URL.'assets/portal.css', [], GFFM_VERSION);
+      wp_enqueue_script('gffm-portal', GFFM_URL.'assets/portal.js', ['jquery'], GFFM_VERSION, true);
+      wp_localize_script('gffm-portal', 'gffmPortal', [
+        'ajaxurl' => admin_url('admin-ajax.php'),
+        'i18n' => [
+          'show' => __('Show password','gffm'),
+          'hide' => __('Hide password','gffm'),
+          'select' => __('Select Image','gffm'),
+        ],
+      ]);
       $methods = get_option('gffm_auth_enabled_methods', ['password','magic','google','facebook']);
-      $out = '<div class="gffm-login">';
+      $out = '<div class="gffm-login-container">';
       $branding = get_option('gffm_auth_login_branding', '');
       if ( $branding ) {
         $out .= '<h2>'.esc_html($branding).'</h2>';
@@ -141,20 +153,26 @@ class GFFM_Portal {
         if ( is_wp_error($user) ) {
           $error = __('Invalid username or password.','gffm');
         } else {
-          wp_safe_redirect(home_url('/vendor-portal/'));
-          exit;
+          $vendor_id = (int) get_user_meta($user->ID, '_gffm_vendor_id', true);
+          if ( ! $vendor_id || ! get_post_meta($vendor_id, '_gffm_portal_enabled', true) ) {
+            wp_logout();
+            $error = __('Your account is not linked to a vendor or portal access is disabled.','gffm');
+          } else {
+            wp_safe_redirect(home_url('/vendor-portal/'));
+            exit;
+          }
         }
       }
       if ( $error ) {
-        $out .= '<div class="gffm-notice">'.esc_html($error).'</div>';
+        $out .= '<div class="gffm-notice gffm-notice-error" aria-live="polite">'.esc_html($error).'</div>';
       }
       if ( in_array('password', $methods, true) ) {
-        $out .= '<form method="post" class="gffm-login-form">';
-        $out .= '<p><label>'.esc_html__('Username','gffm').'<br/><input type="text" name="gffm_username" class="regular-text"/></label></p>';
-        $out .= '<p><label>'.esc_html__('Password','gffm').'<br/><input type="password" name="gffm_password" class="regular-text"/></label></p>';
+        $out .= '<form method="post" class="gffm-login-form"><fieldset>';
+        $out .= '<p class="gffm-login-field"><label for="gffm_username">'.esc_html__('Username','gffm').'</label><input type="text" id="gffm_username" name="gffm_username" /></p>';
+        $out .= '<p class="gffm-login-field gffm-password-field"><label for="gffm_password">'.esc_html__('Password','gffm').'</label><input type="password" id="gffm_password" name="gffm_password" /><button type="button" class="gffm-toggle-pass" aria-label="'.esc_attr__('Show password','gffm').'">&#128065;</button></p>';
         wp_nonce_field('gffm_login','gffm_login_nonce');
         $out .= '<p><button class="button button-primary">'.esc_html__('Sign In','gffm').'</button></p>';
-        $out .= '</form>';
+        $out .= '</fieldset></form>';
       }
       if ( in_array('google', $methods, true) && get_option('gffm_auth_google_client_id') && get_option('gffm_auth_google_client_secret') ) {
         $state = wp_create_nonce('gffm_oauth_google');
@@ -175,14 +193,22 @@ class GFFM_Portal {
       return $out;
     }
     $vendor_id = GFFM_Util::current_user_vendor_id();
-    if ( ! $vendor_id ) {
-      return '<p>'.esc_html__('Your account is not linked to a vendor.','gffm').'</p>';
+    if ( ! $vendor_id || ! get_post_meta($vendor_id, '_gffm_portal_enabled', true) ) {
+      return '<p>'.esc_html__('Your account is not linked to a vendor or portal access is disabled.','gffm').'</p>';
     }
     if ( ! GFFM_Util::can_edit_vendor($vendor_id) ) {
       return '<p>'.esc_html__('You do not have permission to access this vendor.','gffm').'</p>';
     }
     wp_enqueue_style('gffm-portal', GFFM_URL.'assets/portal.css', [], GFFM_VERSION);
     wp_enqueue_script('gffm-portal', GFFM_URL.'assets/portal.js', ['jquery'], GFFM_VERSION, true);
+    wp_localize_script('gffm-portal', 'gffmPortal', [
+      'ajaxurl' => admin_url('admin-ajax.php'),
+      'i18n' => [
+        'show' => __('Show password','gffm'),
+        'hide' => __('Hide password','gffm'),
+        'select' => __('Select Image','gffm'),
+      ],
+    ]);
     wp_enqueue_media();
 
     $out = '';
@@ -195,16 +221,16 @@ class GFFM_Portal {
     }
 
     if ( $notice ) {
-      $out .= '<div class="gffm-notice">'.esc_html($notice).'</div>';
+      $out .= '<div class="gffm-notice gffm-notice-info" aria-live="polite">'.esc_html($notice).'</div>';
     }
 
     $map = json_decode(get_option('gffm_profile_map_json', self::default_mapping()), true);
     if ( ! is_array($map) ) $map = [];
 
     $out .= '<div class="gffm-portal-tabs">';
-    $out .= '<ul class="gffm-tab-nav"><li class="active" data-tab="profile">'.esc_html__('Profile','gffm').'</li><li data-tab="highlight">'.esc_html__('Weekly Highlight','gffm').'</li></ul>';
-    $out .= '<div class="gffm-tab-content active" id="gffm-tab-profile">';
-    $out .= '<form method="post">';
+    $out .= '<ul class="gffm-tab-nav" role="tablist"><li id="gffm-tab-profile-label" class="active" role="tab" tabindex="0" aria-controls="gffm-tab-profile" aria-selected="true" data-tab="profile">'.esc_html__('Profile','gffm').'</li><li id="gffm-tab-highlight-label" role="tab" tabindex="0" aria-controls="gffm-tab-highlight" aria-selected="false" data-tab="highlight">'.esc_html__('Weekly Highlight','gffm').'</li></ul>';
+    $out .= '<div class="gffm-tab-content active" id="gffm-tab-profile" role="tabpanel" aria-labelledby="gffm-tab-profile-label">';
+    $out .= '<form method="post" id="gffm-profile-form">';
     wp_nonce_field('gffm_profile_save','gffm_profile_nonce');
     foreach ($map as $key => $field) {
       $type = $field['type'] ?? 'text';
@@ -240,8 +266,8 @@ class GFFM_Portal {
     $content = $highlight ? $highlight->post_content : '';
     $image_id = $highlight ? get_post_thumbnail_id($highlight->ID) : 0;
 
-    $out .= '<div class="gffm-tab-content" id="gffm-tab-highlight">';
-    $out .= '<form method="post">';
+    $out .= '<div class="gffm-tab-content" id="gffm-tab-highlight" role="tabpanel" aria-labelledby="gffm-tab-highlight-label" hidden>';
+    $out .= '<form method="post" id="gffm-highlight-form">';
     wp_nonce_field('gffm_highlight_save','gffm_highlight_nonce');
     $out .= '<p><label>'.esc_html__('Headline','gffm').'<br/><input type="text" name="hl_title" class="widefat" value="'.esc_attr($title).'"/></label></p>';
     $out .= '<p><label>'.esc_html__('Details','gffm').'<br/><textarea name="hl_content" class="widefat">'.esc_textarea($content).'</textarea></label></p>';
@@ -313,6 +339,26 @@ class GFFM_Portal {
       }
     }
     return __('Highlight saved.','gffm');
+  }
+
+  public static function ajax_profile_save() {
+    check_ajax_referer('gffm_profile_save', 'nonce');
+    $vendor_id = GFFM_Util::current_user_vendor_id();
+    if ( ! $vendor_id ) {
+      wp_send_json_error(['message'=>__('Vendor not found.','gffm')]);
+    }
+    $msg = self::handle_profile_save($vendor_id);
+    wp_send_json_success(['message'=>$msg]);
+  }
+
+  public static function ajax_highlight_save() {
+    check_ajax_referer('gffm_highlight_save', 'nonce');
+    $vendor_id = GFFM_Util::current_user_vendor_id();
+    if ( ! $vendor_id ) {
+      wp_send_json_error(['message'=>__('Vendor not found.','gffm')]);
+    }
+    $msg = self::handle_highlight_save($vendor_id);
+    wp_send_json_success(['message'=>$msg]);
   }
 }
 GFFM_Portal::init();

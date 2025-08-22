@@ -1,6 +1,9 @@
+4.2.0 — Portal UI Overhaul
+- Redesigned vendor portal with responsive tabs and styled login form.
+- Added clearer login error messaging and in-page AJAX notifications.
+
 4.1.1 — Vendor Assignment Toggle
 - Added enable/disable toggle links on the Vendor Assignment page.
-
 
 4.1.0 — Vendor Portal Integration & Weekly Highlights
 - Added vendor magic-link authentication and portal dashboard.

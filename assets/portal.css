@@ -1,10 +1,31 @@
-.gffm-portal-tabs{max-width:600px;margin:0 auto}
-.gffm-tab-nav{display:flex;list-style:none;padding:0;margin:0 0 1em;border-bottom:1px solid #ccc}
-.gffm-tab-nav li{margin-right:1em;padding:0.5em 1em;cursor:pointer}
-.gffm-tab-nav li.active{border-bottom:2px solid #000}
-.gffm-tab-content{display:none}
+/* Vendor Portal Styles */
+.gffm-login-container{max-width:400px;margin:4rem auto;padding:2rem;background:#fff;border:1px solid #ccd0d4;border-radius:8px;box-shadow:0 2px 5px rgba(0,0,0,.1)}
+.gffm-login-field{margin-bottom:1rem;position:relative}
+.gffm-login-field label{display:block;font-weight:600;margin-bottom:.25rem}
+.gffm-login-field input{width:100%;padding:.5rem;border:1px solid #7e8993;border-radius:4px}
+.gffm-password-field .gffm-toggle-pass{position:absolute;right:.5rem;top:2rem;background:none;border:none;cursor:pointer;color:#007c59}
+.gffm-login-form .button{width:100%}
+
+.gffm-portal-tabs{max-width:800px;margin:0 auto}
+.gffm-tab-nav{display:flex;list-style:none;margin:0;padding:0;border-bottom:2px solid #007c59}
+.gffm-tab-nav li{flex:1;text-align:center;padding:.75rem;cursor:pointer}
+.gffm-tab-nav li.active{background:#007c59;color:#fff}
+.gffm-tab-content{display:none;padding:1rem;background:#fff;border:1px solid #ccd0d4;border-top:none}
 .gffm-tab-content.active{display:block}
-.gffm-highlight-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px}
-.gffm-highlight-card{border:1px solid #eee;padding:10px;background:#fff}
-.gffm-notice{margin:1em 0;padding:0.5em;background:#e6ffed;border-left:4px solid #46b450}
-.gffm-img-preview img{max-width:100%;height:auto;display:block;margin-bottom:4px}
+
+.gffm-notice{margin:1rem auto;padding:.75rem;border-left:4px solid #007c59;background:#f0f8f5}
+.gffm-notice-error{border-color:#dc3232;background:#fbeaea}
+.gffm-img-preview img{max-width:100%;height:auto;display:block;margin-bottom:.5rem}
+
+.gffm-highlight-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:1rem}
+.gffm-highlight-card{background:#fff;border:1px solid #ccd0d4;border-radius:6px;padding:1rem}
+.gffm-highlight-card img{max-width:100%;height:auto;border-radius:4px;margin-bottom:.5rem}
+
+button, .button{background:#007c59;border-color:#007c59;color:#fff}
+button:hover, .button:hover{background:#005f46;border-color:#005f46}
+
+@media (max-width:600px){
+  .gffm-tab-nav{flex-direction:column}
+  .gffm-tab-nav li{border-bottom:1px solid #007c59}
+  .gffm-tab-content{border-top:1px solid #ccd0d4}
+}
