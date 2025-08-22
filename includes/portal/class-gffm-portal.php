@@ -45,6 +45,40 @@ class GFFM_Portal {
       'sanitize_callback'=>'wp_kses_post',
       'default'=>"Hello {vendor_title},\n\nYour one-click sign-in link:\n{portal_url}\n\nThis link will expire in 24 hours.\n– {site_name}",
     ]);
+    register_setting('gffm_vendor_portal', 'gffm_auth_enabled_methods', [
+      'type' => 'array',
+      'sanitize_callback' => function($v){
+        $valid = ['password','magic','google','facebook'];
+        if (!is_array($v)) $v = [];
+        return array_values(array_intersect($valid, $v));
+      },
+      'default' => ['password','magic','google','facebook'],
+    ]);
+    register_setting('gffm_vendor_portal', 'gffm_auth_google_client_id', [
+      'type'=>'string',
+      'sanitize_callback'=>'sanitize_text_field',
+      'default'=>'',
+    ]);
+    register_setting('gffm_vendor_portal', 'gffm_auth_google_client_secret', [
+      'type'=>'string',
+      'sanitize_callback'=>'sanitize_text_field',
+      'default'=>'',
+    ]);
+    register_setting('gffm_vendor_portal', 'gffm_auth_facebook_app_id', [
+      'type'=>'string',
+      'sanitize_callback'=>'sanitize_text_field',
+      'default'=>'',
+    ]);
+    register_setting('gffm_vendor_portal', 'gffm_auth_facebook_app_secret', [
+      'type'=>'string',
+      'sanitize_callback'=>'sanitize_text_field',
+      'default'=>'',
+    ]);
+    register_setting('gffm_vendor_portal', 'gffm_auth_login_branding', [
+      'type'=>'string',
+      'sanitize_callback'=>'sanitize_text_field',
+      'default'=>'',
+    ]);
   }
 
   public static function render_settings() {
@@ -66,13 +100,79 @@ class GFFM_Portal {
     echo '<tr><th><label for="gffm_invite_body">'.esc_html__('Invite Email Body','gffm').'</label></th>';
     echo '<td><textarea name="gffm_invite_body" id="gffm_invite_body" rows="6" cols="50" class="large-text code">'.esc_textarea(get_option('gffm_invite_body',"Hello {vendor_title},\n\nYour one-click sign-in link:\n{portal_url}\n\nThis link will expire in 24 hours.\n– {site_name}")).'</textarea><p class="description">'.esc_html__('Placeholders: {site_name}, {vendor_title}, {portal_url}','gffm').'</p></td></tr>';
     echo '</table>';
+    echo '<h2>'.esc_html__('Authentication','gffm').'</h2>';
+    $methods = get_option('gffm_auth_enabled_methods', ['password','magic','google','facebook']);
+    echo '<table class="form-table" role="presentation">';
+    echo '<tr><th>'.esc_html__('Enabled Methods','gffm').'</th><td>';
+    $opts = ['password'=>__('Password','gffm'),'magic'=>__('Magic','gffm'),'google'=>__('Google','gffm'),'facebook'=>__('Facebook','gffm')];
+    foreach($opts as $key=>$label){ echo '<label><input type="checkbox" name="gffm_auth_enabled_methods[]" value="'.esc_attr($key).'" '.checked(in_array($key,$methods,true),true,false).'/> '.esc_html($label).'</label><br/>'; }
+    echo '</td></tr>';
+    if (in_array('google',$methods,true)) {
+      echo '<tr><th><label for="gffm_auth_google_client_id">'.esc_html__('Google Client ID','gffm').'</label></th><td><input type="text" id="gffm_auth_google_client_id" name="gffm_auth_google_client_id" class="regular-text" value="'.esc_attr(get_option('gffm_auth_google_client_id','')).'"/></td></tr>';
+      echo '<tr><th><label for="gffm_auth_google_client_secret">'.esc_html__('Google Client Secret','gffm').'</label></th><td><input type="text" id="gffm_auth_google_client_secret" name="gffm_auth_google_client_secret" class="regular-text" value="'.esc_attr(get_option('gffm_auth_google_client_secret','')).'"/></td></tr>';
+    }
+    if (in_array('facebook',$methods,true)) {
+      echo '<tr><th><label for="gffm_auth_facebook_app_id">'.esc_html__('Facebook App ID','gffm').'</label></th><td><input type="text" id="gffm_auth_facebook_app_id" name="gffm_auth_facebook_app_id" class="regular-text" value="'.esc_attr(get_option('gffm_auth_facebook_app_id','')).'"/></td></tr>';
+      echo '<tr><th><label for="gffm_auth_facebook_app_secret">'.esc_html__('Facebook App Secret','gffm').'</label></th><td><input type="text" id="gffm_auth_facebook_app_secret" name="gffm_auth_facebook_app_secret" class="regular-text" value="'.esc_attr(get_option('gffm_auth_facebook_app_secret','')).'"/></td></tr>';
+    }
+    echo '<tr><th>'.esc_html__('Redirect URI','gffm').'</th><td><input type="text" readonly class="regular-text" value="'.esc_attr(home_url('/vendor-portal/')).'"/></td></tr>';
+    echo '<tr><th><label for="gffm_auth_login_branding">'.esc_html__('Login Branding','gffm').'</label></th><td><input type="text" id="gffm_auth_login_branding" name="gffm_auth_login_branding" class="regular-text" value="'.esc_attr(get_option('gffm_auth_login_branding','')).'"/></td></tr>';
+    echo '</table>';
     submit_button();
     echo '</form></div>';
   }
 
   public static function shortcode($atts, $content = '') {
     if ( ! is_user_logged_in() ) {
-      return '<p>'.esc_html__('Please check your email for a magic link to access the vendor portal.','gffm').'</p>';
+      $methods = get_option('gffm_auth_enabled_methods', ['password','magic','google','facebook']);
+      $out = '<div class="gffm-login">';
+      $branding = get_option('gffm_auth_login_branding', '');
+      if ( $branding ) {
+        $out .= '<h2>'.esc_html($branding).'</h2>';
+      }
+      $error = '';
+      if ( isset($_POST['gffm_login_nonce']) && wp_verify_nonce($_POST['gffm_login_nonce'], 'gffm_login') ) {
+        $creds = [
+          'user_login'    => isset($_POST['gffm_username']) ? sanitize_user(wp_unslash($_POST['gffm_username'])) : '',
+          'user_password' => isset($_POST['gffm_password']) ? $_POST['gffm_password'] : '',
+          'remember'      => true,
+        ];
+        $user = wp_signon($creds, false);
+        if ( is_wp_error($user) ) {
+          $error = __('Invalid username or password.','gffm');
+        } else {
+          wp_safe_redirect(home_url('/vendor-portal/'));
+          exit;
+        }
+      }
+      if ( $error ) {
+        $out .= '<div class="gffm-notice">'.esc_html($error).'</div>';
+      }
+      if ( in_array('password', $methods, true) ) {
+        $out .= '<form method="post" class="gffm-login-form">';
+        $out .= '<p><label>'.esc_html__('Username','gffm').'<br/><input type="text" name="gffm_username" class="regular-text"/></label></p>';
+        $out .= '<p><label>'.esc_html__('Password','gffm').'<br/><input type="password" name="gffm_password" class="regular-text"/></label></p>';
+        wp_nonce_field('gffm_login','gffm_login_nonce');
+        $out .= '<p><button class="button button-primary">'.esc_html__('Sign In','gffm').'</button></p>';
+        $out .= '</form>';
+      }
+      if ( in_array('google', $methods, true) && get_option('gffm_auth_google_client_id') && get_option('gffm_auth_google_client_secret') ) {
+        $state = wp_create_nonce('gffm_oauth_google');
+        set_transient('gffm_oauth_state_'.$state, 1, HOUR_IN_SECONDS);
+        $url = add_query_arg(['gffm_oauth'=>'google','state'=>$state], home_url('/vendor-portal/'));
+        $out .= '<p><a class="button" href="'.esc_url($url).'">'.esc_html__('Sign in with Google','gffm').'</a></p>';
+      }
+      if ( in_array('facebook', $methods, true) && get_option('gffm_auth_facebook_app_id') && get_option('gffm_auth_facebook_app_secret') ) {
+        $state = wp_create_nonce('gffm_oauth_facebook');
+        set_transient('gffm_oauth_state_'.$state, 1, HOUR_IN_SECONDS);
+        $url = add_query_arg(['gffm_oauth'=>'facebook','state'=>$state], home_url('/vendor-portal/'));
+        $out .= '<p><a class="button" href="'.esc_url($url).'">'.esc_html__('Sign in with Facebook','gffm').'</a></p>';
+      }
+      if ( in_array('magic', $methods, true) ) {
+        $out .= '<p>'.esc_html__('Please check your email for a magic link to access the vendor portal.','gffm').'</p>';
+      }
+      $out .= '</div>';
+      return $out;
     }
     $vendor_id = GFFM_Util::current_user_vendor_id();
     if ( ! $vendor_id ) {

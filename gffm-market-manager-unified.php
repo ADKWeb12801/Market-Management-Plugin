@@ -31,6 +31,8 @@ require_once GFFM_DIR . 'includes/helpers/class-gffm-util.php';
 require_once GFFM_DIR . 'includes/portal/class-gffm-magic.php';
 require_once GFFM_DIR . 'includes/portal/class-gffm-vendor-link.php';
 require_once GFFM_DIR . 'includes/portal/class-gffm-portal.php';
+require_once GFFM_DIR . 'includes/portal/class-gffm-oauth.php';
+require_once GFFM_DIR . 'includes/class-gffm-portal-account.php';
 require_once GFFM_DIR . 'includes/highlights/class-gffm-highlights.php';
 
 register_activation_hook(__FILE__, function(){
