@@ -9,13 +9,9 @@ if ( get_option('gffm_remove_data_on_uninstall','no') === 'yes' ) {
         'gffm_profile_map_json',
         'gffm_invite_subject',
         'gffm_invite_body',
-        'gffm_auth_enabled_methods',
-        'gffm_auth_google_client_id',
-        'gffm_auth_google_client_secret',
-        'gffm_auth_facebook_app_id',
-        'gffm_auth_facebook_app_secret',
         'gffm_auth_login_branding',
         'gffm_append_vendor_role',
+        'gffm_enforce_email_login',
         'gffm_remove_data_on_uninstall',
     ];
     foreach ( $opts as $opt ) { delete_option( $opt ); }

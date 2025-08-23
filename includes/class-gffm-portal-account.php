@@ -57,18 +57,18 @@ class GFFM_Portal_Account {
 
         if ( 'link' === $action ) {
             if ( ! $username ) {
-                self::redirect('fail');
+                self::redirect('fail', $vendor_id);
             }
             $existing = get_user_by('login', $username);
             if ( $existing && ( ! $user || $existing->ID !== $user->ID ) ) {
-                self::redirect('user_exists');
+                self::redirect('user_exists', $vendor_id);
             }
             if ( ! $existing ) {
                 $email = get_post_meta($vendor_id, '_email', true);
                 $pass = $password ? $password : wp_generate_password(12, true);
                 $uid = wp_create_user($username, $pass, $email);
                 if ( is_wp_error($uid) ) {
-                    self::redirect('fail');
+                    self::redirect('fail', $vendor_id);
                 }
                 $existing = get_user_by('id', $uid);
             } else {
@@ -76,27 +76,34 @@ class GFFM_Portal_Account {
             }
             update_user_meta($existing->ID, '_gffm_vendor_id', $vendor_id);
             update_post_meta($vendor_id, '_gffm_linked_user', $existing->ID);
-            self::redirect('linked');
+            self::redirect('linked', $vendor_id);
         } elseif ( 'setpass' === $action && $user ) {
             if ( ! $password ) {
-                self::redirect('fail');
+                self::redirect('fail', $vendor_id);
             }
             wp_update_user(['ID'=>$user->ID,'user_pass'=>$password]);
-            self::redirect('pass');
+            self::redirect('pass', $vendor_id);
         } elseif ( 'reset' === $action && $user ) {
             retrieve_password($user->user_login);
-            self::redirect('reset');
+            self::redirect('reset', $vendor_id);
         } elseif ( 'revoke' === $action && $user ) {
             delete_user_meta($user->ID, '_gffm_vendor_id');
             delete_post_meta($vendor_id, '_gffm_linked_user');
             $user->set_role('subscriber');
-            self::redirect('revoked');
+            self::redirect('revoked', $vendor_id);
         }
-        self::redirect('fail');
+        self::redirect('fail', $vendor_id);
     }
 
-    private static function redirect(string $flag) {
-        wp_safe_redirect( add_query_arg('gffm_portal_account', $flag, wp_get_referer()) );
+    private static function redirect(string $flag, int $vendor_id = 0) {
+        $target = wp_get_referer();
+        if ( ! $target && $vendor_id ) {
+            $target = get_edit_post_link($vendor_id, 'raw');
+        }
+        if ( ! $target ) {
+            $target = admin_url('edit.php?post_type=' . self::vendor_cpt());
+        }
+        wp_safe_redirect( add_query_arg('gffm_portal_account', $flag, $target) );
         exit;
     }
 
