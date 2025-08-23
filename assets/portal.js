@@ -7,6 +7,14 @@
       this.bindAjaxForms();
     },
     bindTabs: function(){
+      $(document).on('click keydown','.gffm-tab-nav [role="tab"]',function(e){
+        if(e.type==='click' || e.key==='Enter' || e.key===' '){
+          e.preventDefault();
+          const tab = $(this).data('tab');
+          $('.gffm-tab-nav [role="tab"]').attr('aria-selected','false').removeClass('active');
+          $('.gffm-tab-content').attr('hidden',true).removeClass('active');
+          $(this).attr('aria-selected','true').addClass('active');
+          $('#gffm-tab-'+tab).removeAttr('hidden').addClass('active');
         }
       });
     },
@@ -27,7 +35,7 @@
     bindPasswordToggle: function(){
       $(document).on('click','.gffm-toggle-pass',function(){
         const field = $('#gffm_password');
-        if(field.attr('type') === 'password'){
+        if(field.attr('type')==='password'){
           field.attr('type','text');
           $(this).attr('aria-label', gffmPortal.i18n.hide).text('🙈');
         }else{
@@ -38,7 +46,7 @@
     },
     bindAjaxForms: function(){
       const notify = function(msg,type){
-        const div = $('<div/>',{'class':'gffm-notice '+type,'aria-live':'polite',text:msg});
+        const div = $('<div/>',{ 'class':'gffm-notice '+type, 'aria-live':'polite', text:msg });
         $('.gffm-notice').remove();
         $('.gffm-portal-tabs').prepend(div);
       };

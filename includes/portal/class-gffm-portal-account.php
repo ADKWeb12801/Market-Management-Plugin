@@ -43,60 +43,84 @@ class GFFM_Portal_Account {
 
     public static function handle() {
         if ( ! current_user_can('gffm_manage') && ! current_user_can('manage_options') ) {
-            wp_die(__('You do not have permission.','gffm'));
+            wp_die(__('Not allowed','gffm'));
         }
-        if ( ! isset($_POST['gffm_portal_account_nonce']) || ! wp_verify_nonce($_POST['gffm_portal_account_nonce'], 'gffm_portal_account') ) {
-            wp_die(__('Invalid nonce.','gffm'));
-        }
+        check_admin_referer('gffm_portal_account','gffm_portal_account_nonce');
+
         $vendor_id = isset($_POST['vendor_id']) ? absint($_POST['vendor_id']) : 0;
-        $action = isset($_POST['gffm_action']) ? sanitize_text_field($_POST['gffm_action']) : '';
-        $username = isset($_POST['gffm_username']) ? sanitize_user(wp_unslash($_POST['gffm_username']), true) : '';
-        $password = isset($_POST['gffm_password']) ? wp_unslash($_POST['gffm_password']) : '';
+        $action    = isset($_POST['gffm_action']) ? sanitize_text_field(wp_unslash($_POST['gffm_action'])) : '';
+        $username  = isset($_POST['gffm_username']) ? sanitize_user(wp_unslash($_POST['gffm_username']), true) : '';
+        $password  = isset($_POST['gffm_password']) ? (string) wp_unslash($_POST['gffm_password']) : '';
+
+        if ( ! $vendor_id || get_post_type($vendor_id) !== self::vendor_cpt() ) {
+            self::redirect('fail', $vendor_id);
+        }
+
         $linked = (int) get_post_meta($vendor_id, '_gffm_linked_user', true);
-        $user = $linked ? get_userdata($linked) : false;
+        $user   = $linked ? get_userdata($linked) : false;
 
         if ( 'link' === $action ) {
-            if ( ! $username ) {
-                self::redirect('fail');
+            $email = sanitize_email( get_post_meta($vendor_id, '_email', true) );
+            if ( ! $email ) {
+                self::redirect('email_required', $vendor_id);
             }
-            $existing = get_user_by('login', $username);
-            if ( $existing && ( ! $user || $existing->ID !== $user->ID ) ) {
-                self::redirect('user_exists');
+
+            if ( $username ) {
+                $user = get_user_by('login', $username);
             }
-            if ( ! $existing ) {
-                $email = get_post_meta($vendor_id, '_email', true);
-                $pass = $password ? $password : wp_generate_password(12, true);
-                $uid = wp_create_user($username, $pass, $email);
-                if ( is_wp_error($uid) ) {
-                    self::redirect('fail');
+
+            if ( ! $user ) {
+                if ( ! $username ) {
+                    $username = sanitize_user( current( explode('@', $email) ), true );
                 }
-                $existing = get_user_by('id', $uid);
-            } else {
-                $existing->set_role('gffm_vendor');
+                $pass = $password ? $password : wp_generate_password(12, true);
+                $uid  = wp_create_user( $username, $pass, $email );
+                if ( is_wp_error( $uid ) ) {
+                    self::redirect('fail', $vendor_id);
+                }
+                $user = get_user_by( 'id', $uid );
             }
-            update_user_meta($existing->ID, '_gffm_vendor_id', $vendor_id);
-            update_post_meta($vendor_id, '_gffm_linked_user', $existing->ID);
-            self::redirect('linked');
+
+            if ( ! $user ) {
+                self::redirect('fail', $vendor_id);
+            }
+
+            $user->add_role('gffm_vendor');
+
+            update_user_meta( $user->ID, '_gffm_vendor_id', $vendor_id );
+            update_post_meta( $vendor_id, '_gffm_linked_user', $user->ID );
+            update_post_meta( $vendor_id, '_gffm_portal_enabled', '1' );
+
+            self::redirect('linked', $vendor_id);
         } elseif ( 'setpass' === $action && $user ) {
             if ( ! $password ) {
-                self::redirect('fail');
+                self::redirect('fail', $vendor_id);
             }
-            wp_update_user(['ID'=>$user->ID,'user_pass'=>$password]);
-            self::redirect('pass');
+            wp_update_user( [ 'ID' => $user->ID, 'user_pass' => $password ] );
+            self::redirect('pass', $vendor_id );
         } elseif ( 'reset' === $action && $user ) {
-            retrieve_password($user->user_login);
-            self::redirect('reset');
+            retrieve_password( $user->user_login );
+            self::redirect('reset', $vendor_id );
         } elseif ( 'revoke' === $action && $user ) {
-            delete_user_meta($user->ID, '_gffm_vendor_id');
-            delete_post_meta($vendor_id, '_gffm_linked_user');
+            delete_user_meta( $user->ID, '_gffm_vendor_id' );
+            delete_post_meta( $vendor_id, '_gffm_linked_user' );
+            delete_post_meta( $vendor_id, '_gffm_portal_enabled' );
             $user->set_role('subscriber');
-            self::redirect('revoked');
+            self::redirect('revoked', $vendor_id );
         }
-        self::redirect('fail');
+
+        self::redirect('fail', $vendor_id);
     }
 
-    private static function redirect(string $flag) {
-        wp_safe_redirect( add_query_arg('gffm_portal_account', $flag, wp_get_referer()) );
+    private static function redirect(string $flag, int $vendor_id = 0) {
+        $target = '';
+        if ( $vendor_id ) {
+            $target = get_edit_post_link( $vendor_id, 'raw' );
+        }
+        if ( ! $target ) {
+            $target = admin_url( 'edit.php?post_type=' . self::vendor_cpt() );
+        }
+        wp_safe_redirect( add_query_arg( 'gffm_portal_account', $flag, $target ) );
         exit;
     }
 
@@ -116,8 +140,8 @@ class GFFM_Portal_Account {
                 case 'revoked':
                     $msg = __('Access revoked.','gffm');
                     break;
-                case 'user_exists':
-                    $msg = __('Username already exists.','gffm');
+                case 'email_required':
+                    $msg = __('Vendor email required to create account.','gffm');
                     break;
                 default:
                     $msg = __('Operation failed.','gffm');

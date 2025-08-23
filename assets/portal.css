@@ -12,9 +12,11 @@
 .gffm-tab-nav li.active{background:#007c59;color:#fff}
 .gffm-tab-content{display:none;padding:1rem;background:#fff;border:1px solid #ccd0d4;border-top:none}
 .gffm-tab-content.active{display:block}
+.gffm-tab-content[hidden]{display:none}
 
 .gffm-notice{margin:1rem auto;padding:.75rem;border-left:4px solid #007c59;background:#f0f8f5}
 .gffm-notice-error{border-color:#dc3232;background:#fbeaea}
+.gffm-notice-info{border-color:#007c59;background:#f0f8f5}
 .gffm-img-preview img{max-width:100%;height:auto;display:block;margin-bottom:.5rem}
 
 .gffm-highlight-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:1rem}
